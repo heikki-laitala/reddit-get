@@ -12,38 +12,20 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v6
 
-      - name: Setup Python
-        uses: actions/setup-python@v6.2.0
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: 3.11.x
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
-      - name: Update pip, setuptools, and wheel
-        run: pip install -U pip setuptools wheel
+      - name: Install Python
+        run: uv python install 3.11.x
 
-      - name: Setup Poetry
-        uses: abatilo/actions-poetry@v4.0.0
-        with:
-          poetry-preview: true
+      - name: Install dependencies
+        run: uv sync --all-groups
 
-      - name: Display Python Version
-        run: |
-          python --version
-          pip --version
-          poetry --version
-
-      - name: Cache Dependencies
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/pypoetry/virtualenvs
-          key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-poetry-
-
-      - name: Install Poetry Dependencies
-        run: poetry install -vvv
-
-      - name: Run pytest with black, isort, and coverage
-        run: poetry run pytest -vvv --cov=reddit_get --cov-fail-under=90 --cov-report=xml:docs/coverage/deployment/report.xml --numprocesses=auto --color=yes
+      - name: Run pytest with coverage
+        run: uv run pytest -vvv --cov=reddit_get --cov-fail-under=90 --cov-report=xml:docs/coverage/deployment/report.xml --numprocesses=auto --color=yes
 
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v5.5.2
@@ -52,14 +34,10 @@ jobs:
           name: codecov-umbrella
           fail_ci_if_error: true
 
-      - name: Build Wheel
-        run: poetry build -vvv
-
-      - name: Configure Poetry for PyPI
-        env:
-          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-        run: |
-          poetry config pypi-token.pypi $PYPI_API_TOKEN
+      - name: Build package
+        run: uv build -v
 
       - name: Deploy to PyPI
-        run: poetry publish
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: uv publish

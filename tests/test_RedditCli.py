@@ -193,6 +193,64 @@ class TestRedditCli:
                         )
 
 
+class TestPostCount:
+    def it_counts_posts_on_matching_date(self, mock_reddit):
+        cli = RedditCli('tests/.exampleconfig')
+        result = cli.post_count(subreddit='testsubreddit', date='2025-01-15')
+        assert result == 'r/testsubreddit had 3 post(s) on 2025-01-15'
+
+    def it_returns_zero_for_date_with_no_posts(self, mock_reddit):
+        cli = RedditCli('tests/.exampleconfig')
+        result = cli.post_count(subreddit='testsubreddit', date='2025-01-01')
+        assert result == 'r/testsubreddit had 0 post(s) on 2025-01-01'
+
+    def it_rejects_invalid_date_format(self, mock_reddit):
+        cli = RedditCli('tests/.exampleconfig')
+        with pytest.raises(fire.core.FireError, match='Invalid date format'):
+            cli.post_count(subreddit='testsubreddit', date='not-a-date')
+
+    def it_handles_nonexistent_subreddit(self, mock_reddit):
+        cli = RedditCli('tests/.exampleconfig')
+
+        error_item = RedditErrorItem(
+            error_type='SUBREDDIT_NOEXIST', message='Subreddit not found', field='',
+        )
+
+        with patch.object(cli.reddit, 'subreddit') as mock_subreddit:
+            mock_subreddit.side_effect = RedditAPIException([error_item])
+
+            with pytest.raises(fire.core.FireError, match="does not exist or is private/restricted"):
+                cli.post_count(subreddit='nonexistent', date='2025-01-15')
+
+
+class TestStats:
+    def it_returns_subreddit_stats(self, mock_reddit):
+        cli = RedditCli('tests/.exampleconfig')
+        result = cli.stats(subreddit='testsubreddit')
+        assert result == [
+            'Subreddit: r/testsubreddit',
+            'Subscribers: 1,000,000',
+            'Active Users: 5,000',
+            'Type: public',
+            'NSFW: No',
+            'Created: 2009-02-13',
+            'Description: A test subreddit',
+        ]
+
+    def it_handles_nonexistent_subreddit(self, mock_reddit):
+        cli = RedditCli('tests/.exampleconfig')
+
+        error_item = RedditErrorItem(
+            error_type='SUBREDDIT_NOEXIST', message='Subreddit not found', field='',
+        )
+
+        with patch.object(cli.reddit, 'subreddit') as mock_subreddit:
+            mock_subreddit.side_effect = RedditAPIException([error_item])
+
+            with pytest.raises(fire.core.FireError, match="Subreddit 'r/nonexistent' does not exist"):
+                cli.stats(subreddit='nonexistent')
+
+
 class TestRetryLogic:
     """Tests for _execute_with_retry method including rate limit handling."""
 
@@ -242,9 +300,8 @@ class TestRetryLogic:
             exception = RedditAPIException([rate_limit_item])
             raise exception
 
-        with patch('time.sleep'):
-            with pytest.raises(fire.core.FireError, match='Reddit API rate limit exceeded'):
-                cli._execute_with_retry(always_fails, max_retries=3)
+        with patch('time.sleep'), pytest.raises(fire.core.FireError, match='Reddit API rate limit exceeded'):
+            cli._execute_with_retry(always_fails, max_retries=3)
 
     def it_handles_other_reddit_api_errors(self, mock_reddit):
         """Test handling of non-rate-limit Reddit API errors."""
@@ -295,7 +352,7 @@ class TestRedditAPIErrorHandling:
         with patch.object(cli.reddit, 'subreddit') as mock_subreddit:
             mock_subreddit.side_effect = RedditAPIException([error_item])
 
-            with pytest.raises(fire.core.FireError, match="does not exist or is private/restricted"):
+            with pytest.raises(fire.core.FireError, match='does not exist or is private/restricted'):
                 cli.post(subreddit='privatesubreddit', limit=3)
 
     def it_handles_rate_limit_during_post_fetch(self, mock_reddit):

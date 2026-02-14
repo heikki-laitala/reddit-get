@@ -11,7 +11,7 @@ reddit-get is a Python CLI tool that retrieves posts from Reddit using the PRAW 
 - **Language**: Python 3.11+ (tested on 3.11, 3.12, 3.13, 3.14)
 - **CLI Framework**: Google Fire (automatic CLI generation from Python classes)
 - **Reddit API**: PRAW 7.7.0
-- **Package Manager**: Poetry
+- **Package Manager**: uv
 - **Testing**: pytest with extensive plugins
 - **Code Quality**: Black, isort, Ruff, mypy with strict type checking
 
@@ -35,26 +35,26 @@ tests/
 
 ### Setup and Installation
 ```bash
-# Install dependencies
-poetry install
+# Install dependencies (all groups)
+uv sync --all-groups
 
-# Install with all groups (including dev dependencies)
-poetry install --with lint,test
+# Install only production dependencies
+uv sync
 ```
 
 ### Running Tests
 ```bash
 # Run all tests with coverage (90% minimum required)
-poetry run pytest -vvv --force-sugar --tb=native --cov=reddit_get --cov-fail-under=90 --cov-report=xml:docs/coverage/integration/report.xml --numprocesses=auto --color=yes --code-highlight=yes --durations=10
+uv run pytest -vvv --force-sugar --tb=native --cov=reddit_get --cov-fail-under=90 --cov-report=xml:docs/coverage/integration/report.xml --numprocesses=auto --color=yes --code-highlight=yes --durations=10
 
 # Run tests in parallel with pytest-xdist
-poetry run pytest -n auto
+uv run pytest -n auto
 
 # Run single test file
-poetry run pytest tests/test_utils.py
+uv run pytest tests/test_utils.py
 
 # Run single test function
-poetry run pytest tests/test_utils.py::test_function_name
+uv run pytest tests/test_utils.py::test_function_name
 
 # Run tests across multiple Python versions
 tox
@@ -63,25 +63,25 @@ tox
 ### Code Quality
 ```bash
 # Format code with Black (line length 110)
-poetry run black reddit_get/ tests/
+uv run black reddit_get/ tests/
 
 # Sort imports with isort
-poetry run isort reddit_get/ tests/
+uv run isort reddit_get/ tests/
 
 # Lint with Ruff (auto-fix enabled)
-poetry run ruff check reddit_get/ tests/
+uv run ruff check reddit_get/ tests/
 
 # Type checking with mypy (strict mode)
-poetry run mypy reddit_get/
+uv run mypy reddit_get/
 ```
 
 ### Running the CLI Locally
 ```bash
 # Run from source during development
-poetry run python -m reddit_get.cli post --subreddit showerthoughts --post_sorting top --limit 10
+uv run python -m reddit_get.cli post --subreddit showerthoughts --post_sorting top --limit 10
 
 # Or use the installed entry point
-poetry run reddit-get post --help
+uv run reddit-get post --help
 ```
 
 ## Architecture Notes
@@ -120,7 +120,7 @@ Both headers and post output use Python string formatting with template validati
 
 The GitHub Actions workflow (`.github/workflows/integrate.yml`) runs on:
 - Matrix: Python 3.11, 3.12, 3.13, 3.14 × Ubuntu, macOS, Windows
-- Steps: checkout → setup Python → install Poetry → cache deps → install → pytest with coverage
+- Steps: checkout → setup uv → install Python → sync deps → pytest with coverage
 - Coverage uploaded to Codecov (90% minimum enforced)
 
 ## Code Quality Standards
@@ -132,7 +132,7 @@ The GitHub Actions workflow (`.github/workflows/integrate.yml`) runs on:
 - Return types are mandatory
 
 ### Ruff Configuration
-- Extensive rule set enabled (see pyproject.toml lines 99-135)
+- Extensive rule set enabled (see pyproject.toml)
 - Auto-fix enabled for most rules
 - Special exclusions for tests: no docstrings, S101 (assert) allowed
 - Required import: `from __future__ import annotations` in all files
