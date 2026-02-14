@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import time
+from datetime import datetime
 from typing import TYPE_CHECKING, TypeVar
 
 import fire
@@ -16,7 +17,9 @@ from .types import (
     TimeFilterOption,
 )
 from .utils import (
+    count_posts_by_date,
     create_post_output,
+    format_subreddit_stats,
     get_post_sorting_option,
     get_reddit_query_function,
     get_response,
@@ -204,6 +207,29 @@ class RedditCli:
         }
         return template.format(**format_params)
 
+    def stats(self, subreddit: str) -> list[str]:
+        """Get subreddit metadata and statistics.
+
+        Returns subscriber count, active users, description, creation date,
+        and other metadata for the specified subreddit.
+
+        Args:
+            subreddit: Which subreddit to get stats for
+
+        Returns:
+            Formatted subreddit statistics
+        """
+        try:
+            subreddit_obj = self.reddit.subreddit(subreddit)
+            # Access an attribute to trigger the lazy load with rate-limit handling
+            self._execute_with_retry(lambda: subreddit_obj.subscribers)
+            return format_subreddit_stats(subreddit_obj)
+        except RedditAPIException as e:
+            if any(item.error_type in ('SUBREDDIT_NOEXIST', 'SUBREDDIT_NOTALLOWED') for item in e.items):
+                msg = f"Subreddit 'r/{subreddit}' does not exist or is private/restricted"
+                raise fire.core.FireError(msg) from e
+            raise
+
     def post(
         self,
         subreddit: str,
@@ -296,6 +322,36 @@ class RedditCli:
                 msg = f"Subreddit 'r/{subreddit}' does not exist or is private/restricted"
                 raise fire.core.FireError(msg) from e
             # Re-raise for _execute_with_retry to handle
+            raise
+
+
+    def post_count(self, subreddit: str, date: str) -> str:
+        """Count the number of posts made in a subreddit on a specific date.
+
+        Fetches up to 1000 recent posts and counts those matching the given date.
+        Only works reliably for recent dates due to Reddit API limits.
+
+        Args:
+            subreddit: Which subreddit to count posts for
+            date: Date to count posts for in YYYY-MM-DD format
+
+        Returns:
+            Formatted string with the post count
+        """
+        try:
+            parsed_date = datetime.strptime(date, '%Y-%m-%d')  # noqa: DTZ007
+        except ValueError:
+            raise fire.core.FireError(f"Invalid date format: '{date}'. Expected YYYY-MM-DD.")
+
+        try:
+            subreddit_obj = self.reddit.subreddit(subreddit)
+            posts = self._execute_with_retry(lambda: list(subreddit_obj.new(limit=1000)))
+            count = count_posts_by_date(iter(posts), parsed_date)
+            return f'r/{subreddit} had {count} post(s) on {date}'
+        except RedditAPIException as e:
+            if any(item.error_type in ('SUBREDDIT_NOEXIST', 'SUBREDDIT_NOTALLOWED') for item in e.items):
+                msg = f"Subreddit 'r/{subreddit}' does not exist or is private/restricted"
+                raise fire.core.FireError(msg) from e
             raise
 
 

@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import functools
 import os
+from datetime import UTC, datetime
 from pathlib import Path
 from string import Formatter
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import fire
 import toml
@@ -123,6 +124,49 @@ def get_post_sorting_option(post_sorting: str) -> SortingOption:
 def get_template_keys(template: str) -> set[str] | None:
     template_vars = {tup[1] for tup in Formatter().parse(template) if tup[1] and isinstance(tup[1], str)}
     return template_vars or None
+
+
+def format_subreddit_stats(subreddit: Any) -> list[str]:
+    """Format subreddit metadata into human-readable lines.
+
+    Args:
+        subreddit: A PRAW Subreddit object (or mock with matching attributes)
+
+    Returns:
+        List of formatted strings with subreddit metadata
+    """
+    created = datetime.fromtimestamp(subreddit.created_utc, tz=UTC).strftime('%Y-%m-%d')
+    return [
+        f'Subreddit: r/{subreddit.display_name}',
+        f'Subscribers: {subreddit.subscribers:,}',
+        f'Active Users: {subreddit.accounts_active:,}',
+        f'Type: {subreddit.subreddit_type}',
+        f'NSFW: {"Yes" if subreddit.over18 else "No"}',
+        f'Created: {created}',
+        f'Description: {subreddit.public_description}',
+    ]
+
+
+def count_posts_by_date(posts: Iterator[Any], date: datetime) -> int:
+    """Count how many posts were created on a specific date (UTC).
+
+    Args:
+        posts: Iterator of PRAW Submission objects, newest first
+        date: The date to count posts for
+
+    Returns:
+        Number of posts created on the given date
+    """
+    day_start = datetime(date.year, date.month, date.day, tzinfo=UTC).timestamp()
+    day_end = day_start + 86400  # 24 hours in seconds
+    count = 0
+    for post in posts:
+        if post.created_utc >= day_end:
+            continue
+        if post.created_utc < day_start:
+            break
+        count += 1
+    return count
 
 
 def create_post_output(template: str, posts: Iterator[Submission]) -> list[str]:

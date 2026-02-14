@@ -4,6 +4,13 @@ Changelog
 
 (unreleased)
 ------------
+- Add ``post-count`` command to count posts on a specific date.
+
+  New CLI command ``reddit-get post-count --subreddit <name> --date YYYY-MM-DD``
+  that fetches up to 1000 recent posts and counts those matching the given date.
+  Includes ``count_posts_by_date()`` helper in utils, full test coverage, and
+  error handling for invalid dates and non-existent subreddits.
+
 - Update deploy action (#52) [Mike Lane]
 
   * Refactor the code

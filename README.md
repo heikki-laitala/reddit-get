@@ -2,14 +2,26 @@
 ![Reddit-Get Integration](https://github.com/mikelane/reddit-get/workflows/Reddit-Get%20Integration/badge.svg)
 [![codecov](https://codecov.io/gh/mikelane/reddit-get/branch/main/graph/badge.svg)](https://codecov.io/gh/mikelane/reddit-get)
 
-This is a python CLI that will pull posts from Reddit. In order to use this CLI, you'll need to set up a 
-Reddit app of your own so that you can authenticate into Reddit with your own credentials. Never fear, 
+This is a Python CLI that will pull posts from Reddit. In order to use this CLI, you'll need to set up a
+Reddit app of your own so that you can authenticate into Reddit with your own credentials. Never fear,
 this process is pretty straight forward.
 
 ## Installation
 
-Using python 3.8 or later, run `pip3 install reddit-get`. But also, you need to set up a reddit cli app so 
-you can access reddit through the command line. See below for that.
+Requires Python 3.11 or later.
+
+```shell
+# Install directly from GitHub
+pip install git+https://github.com/heikki-laitala/reddit-get.git
+
+# Or from a local clone
+pip install /path/to/reddit-get
+
+# Or editable install for development
+pip install -e /path/to/reddit-get
+```
+
+After installation, the `reddit-get` command is available in your shell. You also need to set up Reddit API credentials — see below.
 
 ### Create a Reddit Application
 
@@ -41,35 +53,71 @@ a configuration file on your system.
    password = "<your reddit password>"
    ```
 
-Once this is set up, you should be good to go. 
+Once this is set up, you should be good to go.
 
-## Example Usage
+## Commands
 
-Once you've got your cli app set up and reddit-get installed, you can run it like this:
+### `post` — Get post titles
+
+Fetch post titles from a subreddit with customizable sorting, time filtering, and output formatting.
 
 ```shell
-$ reddit-get post --subreddit showerthoughts --post_sorting top --limit 10 --time_filter all --header --markdown
-```
-And here's what was returned today:
-
-```markdown
-##### *Top Posts from r/showerthoughts*
-- *Whoever created the tradition of not seeing the bride in the wedding dress beforehand saved countless husbands everywhere from hours of dress shopping and will forever be a hero to all men.*
-- *We laugh at dogs getting excited when they hear a bark on TV, but if TV was a nonstop stream of unintelligible noises and then someone suddenly spoke to you in your language, you'd be pretty fucking startled too.*
-- *When you're a kid, you don't realize you're also watching your mom and dad grow up.*
-- *Dads probably bond with dogs so much because, in our society, men don’t get shown a lot of affection but dogs give tons of affection regardless*
-- *Being able to tolerate the sound of your own voice in a video is probably the highest form of self acceptance.*
-- *Girls don't compliment guys because they're likely to take it non-platonically, guys take it non-platonically because it happens so infrequently they don't know how to handle it*
-- *If elevators hadn't been invented, all the CEOs and important people would have their offices on the first floor as a sign of status.*
-- *If EA suffers big enough losses from the backlash of Battlefront 2, and it all started because some guy couldn't unlock Vader, this will be the second time Anakin brought balance to something.*
-- *Being able to do well in high school without having to put in much effort is actually a big disadvantage later in life.*
-- *During a nuclear explosion, there is a certain distance of the radius where all the frozen supermarket pizzas are cooked to perfection.*
+$ reddit-get post --subreddit showerthoughts --post_sorting top --limit 10 --time_filter all
 ```
 
-For more help with the post command, you can of course run
+Example output:
+
+```
+#### The Top Posts for All Time from r/showerthoughts
+- Whoever created the tradition of not seeing the bride in the wedding dress beforehand saved countless husbands everywhere from hours of dress shopping and will forever be a hero to all men.
+- We laugh at dogs getting excited when they hear a bark on TV, but if TV was a nonstop stream of unintelligible noises and then someone suddenly spoke to you in your language, you'd be pretty fucking startled too.
+- When you're a kid, you don't realize you're also watching your mom and dad grow up.
+```
+
+For more options:
 
 ```shell
 $ reddit-get post --help
+```
+
+### `post-count` — Count posts on a date
+
+Count how many posts were made in a subreddit on a specific date. Fetches up to 1000 recent posts and filters by date, so this works best for recent dates.
+
+```shell
+$ reddit-get post-count --subreddit showerthoughts --date 2025-01-15
+```
+
+Example output:
+
+```
+r/showerthoughts had 42 post(s) on 2025-01-15
+```
+
+### `stats` — Get subreddit statistics
+
+Retrieve metadata and statistics for a subreddit.
+
+```shell
+$ reddit-get stats --subreddit showerthoughts
+```
+
+Example output:
+
+```
+Subreddit: r/showerthoughts
+Subscribers: 25,000,000
+Active Users: 10,000
+Type: public
+NSFW: No
+Created: 2011-07-18
+Description: A subreddit for sharing those miniature epiphanies you have...
+```
+
+### `config-location` — Show config file path
+
+```shell
+$ reddit-get config-location
 ```
 
 ---

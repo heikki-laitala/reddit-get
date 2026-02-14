@@ -26,40 +26,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Setup Python
-        uses: actions/setup-python@v6.2.0
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
-      - name: Display Python Version
-        run: |
-          python --version
-          pip --version
+      - name: Install Python
+        run: uv python install ${{ matrix.python-version }}
 
-      - name: Update pip, setuptools, and wheel
-        run: pip install -U pip setuptools wheel
-
-      - name: Setup Poetry
-        uses: abatilo/actions-poetry@v4.0.0
-        with:
-          poetry-preview: true
-
-      - name: Display Poetry Version
-        run: poetry --version
-
-      - name: Cache Dependencies
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/pypoetry/virtualenvs
-          key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-poetry-
-
-      - name: Install Poetry Dependencies
-        run: poetry install -vvv
+      - name: Install dependencies
+        run: uv sync --all-groups
 
       - name: Run Pytest with Black, isort, and coverage
-        run: poetry run pytest -vvv --force-sugar --tb=native --cov=reddit_get --cov-fail-under=90 --cov-report=xml:docs/coverage/integration/report.xml --numprocesses=auto --color=yes --code-highlight=yes --durations=10
+        run: uv run pytest -vvv --force-sugar --tb=native --cov=reddit_get --cov-fail-under=90 --cov-report=xml:docs/coverage/integration/report.xml --numprocesses=auto --color=yes --code-highlight=yes --durations=10
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5.5.2
